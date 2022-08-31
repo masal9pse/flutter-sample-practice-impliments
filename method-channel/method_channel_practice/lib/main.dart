@@ -28,8 +28,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+ static const batteryChannel = MethodChannel('mukku.com/battery');
   // メソッドチャンネルを作成
-  static const batteryChannel = MethodChannel('mukku.com/battery');
   // バッテリーの残量
   String batteryLevel = 'Waiting...';
 
@@ -38,7 +38,15 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       body: Center(
         // バッテリーの残量を表示
-        child: Text(batteryLevel),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(batteryLevel),
+            ElevatedButton(onPressed: (){
+              printy();
+            }, child: Text('click me')),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -49,6 +57,15 @@ class _MyHomePageState extends State<MyHomePage> {
         child: const Icon(Icons.battery_full),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+  void printy() async {
+    late String value;
+    try {
+      value = await batteryChannel.invokeMethod('printy');
+    } catch (e) {
+      print(e);
+    }
+    print(value);
   }
 
   Future getBatteryLevel() async {
