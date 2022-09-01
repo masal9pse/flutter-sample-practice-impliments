@@ -4,10 +4,13 @@ import 'package:flutter_uploader/flutter_uploader.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart';
+import 'package:using_flutter_uploader/config.dart';
 
 const String title = "FileUpload Sample app";
-const String uploadURL =
-    "https://us-central1-flutteruploader.cloudfunctions.net/upload";
+// const String uploadURL =
+//     "https://us-central1-flutteruploader.cloudfunctions.net/upload";
+String uploadURL =
+    '$envUrl/api/upload_car_photo/1';
 
 const String uploadBinaryURL =
     "https://us-central1-flutteruploader.cloudfunctions.net/upload/binary";
@@ -50,12 +53,13 @@ class UploadItem {
     this.status = UploadTaskStatus.undefined,
   });
 
-  UploadItem copyWith({required UploadTaskStatus status, int? progress}) => UploadItem(
-      id: this.id,
-      taskId: this.taskId,
-      type: this.type,
-      status: status ?? this.status,
-      progress: progress ?? this.progress);
+  UploadItem copyWith({required UploadTaskStatus status, int? progress}) =>
+      UploadItem(
+          id: this.id,
+          taskId: this.taskId,
+          type: this.type,
+          status: status,
+          progress: progress ?? this.progress);
 
   bool isCompleted() =>
       this.status == UploadTaskStatus.canceled ||
@@ -87,8 +91,8 @@ class _UploadScreenState extends State<UploadScreen> {
       if (task == null) return;
       if (task.isCompleted()) return;
       setState(() {
-        _tasks[progress.taskId]=
-            task.copyWith(progress: progress.progress!, status: progress.status);
+        _tasks[progress.taskId] = task.copyWith(
+            progress: progress.progress!, status: progress.status);
       });
     });
     _resultSubscription = uploader.result.listen((result) {
@@ -103,7 +107,7 @@ class _UploadScreenState extends State<UploadScreen> {
       });
     }, onError: (ex, stacktrace) {
       print("exception: $ex");
-      print("stacktrace: $stacktrace" ?? "no stacktrace");
+      print("stacktrace: $stacktrace");
       // final exp = ex as UploadException;
       // final task = _tasks[exp.tag];
       // if (task == null) return;
@@ -117,8 +121,8 @@ class _UploadScreenState extends State<UploadScreen> {
   @override
   void dispose() {
     super.dispose();
-    _progressSubscription?.cancel();
-    _resultSubscription?.cancel();
+    _progressSubscription.cancel();
+    _resultSubscription.cancel();
   }
 
   @override
@@ -145,10 +149,10 @@ class _UploadScreenState extends State<UploadScreen> {
                   child: Text("upload image"),
                 ),
                 Container(width: 20.0),
-                RaisedButton(
-                  onPressed: () => getVideo(binary: false),
-                  child: Text("upload video"),
-                )
+                // RaisedButton(
+                //   onPressed: () => getVideo(binary: false),
+                //   child: Text("upload video"),
+                // )
               ],
             ),
             Container(height: 20.0),
@@ -165,10 +169,10 @@ class _UploadScreenState extends State<UploadScreen> {
                   child: Text("upload image"),
                 ),
                 Container(width: 20.0),
-                RaisedButton(
-                  onPressed: () => getVideo(binary: true),
-                  child: Text("upload video"),
-                )
+                // RaisedButton(
+                //   onPressed: () => getVideo(binary: true),
+                //   child: Text("upload video"),
+                // )
               ],
             ),
             Expanded(
@@ -177,7 +181,7 @@ class _UploadScreenState extends State<UploadScreen> {
                 itemCount: _tasks.length,
                 itemBuilder: (context, index) {
                   final item = _tasks.values.elementAt(index);
-                  print("${item.tag} - ${item.status}");
+                  print("${item.taskId} - ${item.status}");
                   return UploadItemView(
                     item: item,
                     onCancel: cancelUpload,
@@ -207,14 +211,15 @@ class _UploadScreenState extends State<UploadScreen> {
   Future getImage({required bool binary}) async {
     var image = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (image != null) {
-      final String filename = basename(image.path);
-      final String savedDir = dirname(image.path);
+      // final String filename = basename(image.path);
+      // final String savedDir = dirname(image.path);
       final tag = "image upload ${_tasks.length + 1}";
       var url = _uploadUrl(binary: binary);
       var fileItem = FileItem(
         // filename: filename,
         // savedDir: savedDir,
-        path: savedDir,
+        // path: savedDir,
+        path: image.path,
         // fieldname: "file",
         field: "file",
       );
@@ -235,74 +240,39 @@ class _UploadScreenState extends State<UploadScreen> {
       //         tag: tag,
       //         showNotification: true,
       //       );
-      var taskId = binary
-          ? await uploader.enqueueBinary(
-              url: url,
-              file: fileItem,
-              method: UploadMethod.POST,
-              tag: tag,
-              showNotification: true,
-            )
-          : await uploader.enqueue(
-              url: url,
-              data: {"name": "john"},
-              files: [fileItem],
-              method: UploadMethod.POST,
-              tag: tag,
-              showNotification: true,
-            );
-
-      setState(() {
-        _tasks.putIfAbsent(
-            tag,
-            () => UploadItem(
-                  id: taskId,
-                  tag: tag,
-                  type: MediaType.Video,
-                  status: UploadTaskStatus.enqueued,
-                ));
-      });
-    }
-  }
-
-  Future getVideo({@required bool binary}) async {
-    var video = await ImagePicker.pickVideo(source: ImageSource.gallery);
-    if (video != null) {
-      final String savedDir = dirname(video.path);
-      final String filename = basename(video.path);
-      final tag = "video upload ${_tasks.length + 1}";
-      final url = _uploadUrl(binary: binary);
-
-      var fileItem = FileItem(
-        filename: filename,
-        savedDir: savedDir,
-        fieldname: "file",
+      // var taskId = await uploader.enqueue(
+      //         url: url,
+      //         data: {"name": "john"},
+      //         files: [fileItem],
+      //         method: UploadMethod.POST,
+      //         tag: tag,
+      //         showNotification: true,
+      //       );
+      final upload = MultipartFormDataUpload(
+        url: url,
+        data: {"name": "john"},
+        files: [fileItem],
+        method: UploadMethod.POST,
+        tag: tag,
+        // showNotification: true,
       );
-
-      var taskId = binary
-          ? await uploader.enqueueBinary(
-              url: url,
-              file: fileItem,
-              method: UploadMethod.POST,
-              tag: tag,
-              showNotification: true,
-            )
-          : await uploader.enqueue(
-              url: url,
-              data: {"name": "john"},
-              files: [fileItem],
-              method: UploadMethod.POST,
-              tag: tag,
-              showNotification: true,
-            );
+      var taskId = await uploader.enqueue(upload);
+      // var taskId = await uploader.enqueue(
+      //         url: url,
+      //         data: {"name": "john"},
+      //         files: [fileItem],
+      //         method: UploadMethod.POST,
+      //         tag: tag,
+      //         showNotification: true,
+      //       );
 
       setState(() {
         _tasks.putIfAbsent(
             tag,
             () => UploadItem(
                   id: taskId,
-                  tag: tag,
-                  type: MediaType.Video,
+                  taskId: tag,
+                  type: MediaType.Image,
                   status: UploadTaskStatus.enqueued,
                 ));
       });
@@ -317,13 +287,13 @@ class _UploadScreenState extends State<UploadScreen> {
 typedef CancelUploadCallback = Future<void> Function(String id);
 
 class UploadItemView extends StatelessWidget {
-  final UploadItem item;
-  final CancelUploadCallback onCancel;
+  late UploadItem item;
+  late CancelUploadCallback onCancel;
 
   UploadItemView({
-    Key key,
-    this.item,
-    this.onCancel,
+    Key? key,
+    required this.item,
+    required this.onCancel,
   }) : super(key: key);
 
   @override
@@ -348,7 +318,7 @@ class UploadItemView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Text(item.tag),
+              Text(item.taskId),
               Container(
                 height: 5.0,
               ),
