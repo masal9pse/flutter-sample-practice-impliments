@@ -4,23 +4,20 @@ import 'package:flutter_uploader/flutter_uploader.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart';
-import 'package:using_flutter_uploader/config.dart';
 
 const String title = "FileUpload Sample app";
-// これをsellca_apiにしたらいけそう。
-// const String uploadURL =
-//     "https://us-central1-flutteruploader.cloudfunctions.net/upload";
-// const uploadURL = 'https://test.sellca-sellcar.com/api/upload_car_photo/1';
-final uploadURL = '$envUrl/api/upload_car_photo/1';
+const String uploadURL =
+    "https://us-central1-flutteruploader.cloudfunctions.net/upload";
+
 const String uploadBinaryURL =
     "https://us-central1-flutteruploader.cloudfunctions.net/upload/binary";
 
 void main() => runApp(App());
 
 class App extends StatefulWidget {
-  final Widget child;
+  final Widget? child;
 
-  App({Key key, this.child}) : super(key: key);
+  App({Key? key, this.child}) : super(key: key);
 
   _AppState createState() => _AppState();
 }
@@ -40,22 +37,22 @@ class _AppState extends State<App> {
 
 class UploadItem {
   final String id;
-  final String tag;
+  final String taskId;
   final MediaType type;
   final int progress;
   final UploadTaskStatus status;
 
   UploadItem({
-    this.id,
-    this.tag,
-    this.type,
+    required this.id,
+    required this.taskId,
+    required this.type,
     this.progress = 0,
     this.status = UploadTaskStatus.undefined,
   });
 
-  UploadItem copyWith({UploadTaskStatus status, int progress}) => UploadItem(
+  UploadItem copyWith({required UploadTaskStatus status, int? progress}) => UploadItem(
       id: this.id,
-      tag: this.tag,
+      taskId: this.taskId,
       type: this.type,
       status: status ?? this.status,
       progress: progress ?? this.progress);
@@ -69,7 +66,7 @@ class UploadItem {
 enum MediaType { Image, Video }
 
 class UploadScreen extends StatefulWidget {
-  UploadScreen({Key key}) : super(key: key);
+  UploadScreen({Key? key}) : super(key: key);
 
   @override
   _UploadScreenState createState() => _UploadScreenState();
@@ -77,43 +74,43 @@ class UploadScreen extends StatefulWidget {
 
 class _UploadScreenState extends State<UploadScreen> {
   FlutterUploader uploader = FlutterUploader();
-  StreamSubscription _progressSubscription;
-  StreamSubscription _resultSubscription;
+  late StreamSubscription _progressSubscription;
+  late StreamSubscription _resultSubscription;
   Map<String, UploadItem> _tasks = {};
 
   @override
   void initState() {
     super.initState();
     _progressSubscription = uploader.progress.listen((progress) {
-      final task = _tasks[progress.tag];
-      print("progress: ${progress.progress} , tag: ${progress.tag}");
+      final task = _tasks[progress.taskId];
+      print("progress: ${progress.progress} , tag: ${progress.taskId}");
       if (task == null) return;
       if (task.isCompleted()) return;
       setState(() {
-        _tasks[progress.tag] =
-            task.copyWith(progress: progress.progress, status: progress.status);
+        _tasks[progress.taskId]=
+            task.copyWith(progress: progress.progress!, status: progress.status);
       });
     });
     _resultSubscription = uploader.result.listen((result) {
       print(
-          "id: ${result.taskId}, status: ${result.status}, response: ${result.response}, statusCode: ${result.statusCode}, tag: ${result.tag}, headers: ${result.headers}");
+          "id: ${result.taskId}, status: ${result.status}, response: ${result.response}, statusCode: ${result.statusCode}, taskId: ${result.taskId}, headers: ${result.headers}");
 
-      final task = _tasks[result.tag];
+      final task = _tasks[result.taskId];
       if (task == null) return;
 
       setState(() {
-        _tasks[result.tag] = task.copyWith(status: result.status);
+        _tasks[result.taskId] = task.copyWith(status: result.status!);
       });
     }, onError: (ex, stacktrace) {
       print("exception: $ex");
       print("stacktrace: $stacktrace" ?? "no stacktrace");
-      final exp = ex as UploadException;
-      final task = _tasks[exp.tag];
-      if (task == null) return;
+      // final exp = ex as UploadException;
+      // final task = _tasks[exp.tag];
+      // if (task == null) return;
 
-      setState(() {
-        _tasks[exp.tag] = task.copyWith(status: exp.status);
-      });
+      // setState(() {
+      //   _tasks[exp.tag] = task.copyWith(status: exp.status);
+      // });
     });
   }
 
@@ -126,7 +123,6 @@ class _UploadScreenState extends State<UploadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    var subhead;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Plugin example app'),
@@ -200,7 +196,7 @@ class _UploadScreenState extends State<UploadScreen> {
     );
   }
 
-  String _uploadUrl({bool binary}) {
+  String _uploadUrl({required bool binary}) {
     if (binary) {
       return uploadBinaryURL;
     } else {
@@ -208,7 +204,7 @@ class _UploadScreenState extends State<UploadScreen> {
     }
   }
 
-  Future getImage({@required bool binary}) async {
+  Future getImage({required bool binary}) async {
     var image = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (image != null) {
       final String filename = basename(image.path);
@@ -216,11 +212,29 @@ class _UploadScreenState extends State<UploadScreen> {
       final tag = "image upload ${_tasks.length + 1}";
       var url = _uploadUrl(binary: binary);
       var fileItem = FileItem(
-        filename: filename,
-        savedDir: savedDir,
-        fieldname: "file",
+        // filename: filename,
+        // savedDir: savedDir,
+        path: savedDir,
+        // fieldname: "file",
+        field: "file",
       );
 
+      // var taskId = binary
+      //     ? await uploader.enqueueBinary(
+      //         url: url,
+      //         file: fileItem,
+      //         method: UploadMethod.POST,
+      //         tag: tag,
+      //         showNotification: true,
+      //       )
+      //     : await uploader.enqueue(
+      //         url: url,
+      //         data: {"name": "john"},
+      //         files: [fileItem],
+      //         method: UploadMethod.POST,
+      //         tag: tag,
+      //         showNotification: true,
+      //       );
       var taskId = binary
           ? await uploader.enqueueBinary(
               url: url,
@@ -231,8 +245,7 @@ class _UploadScreenState extends State<UploadScreen> {
             )
           : await uploader.enqueue(
               url: url,
-              // data: {"name": "john"},
-              data: {"user_id": "john","token":"","car_id":"4"},
+              data: {"name": "john"},
               files: [fileItem],
               method: UploadMethod.POST,
               tag: tag,
@@ -245,8 +258,7 @@ class _UploadScreenState extends State<UploadScreen> {
             () => UploadItem(
                   id: taskId,
                   tag: tag,
-                  // type: MediaType.Video,
-                  type: MediaType.Image,
+                  type: MediaType.Video,
                   status: UploadTaskStatus.enqueued,
                 ));
       });
@@ -254,7 +266,7 @@ class _UploadScreenState extends State<UploadScreen> {
   }
 
   Future getVideo({@required bool binary}) async {
-    var video = await ImagePicker().pickVideo(source: ImageSource.gallery);
+    var video = await ImagePicker.pickVideo(source: ImageSource.gallery);
     if (video != null) {
       final String savedDir = dirname(video.path);
       final String filename = basename(video.path);
