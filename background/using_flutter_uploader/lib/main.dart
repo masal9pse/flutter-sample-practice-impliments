@@ -4,20 +4,23 @@ import 'package:flutter_uploader/flutter_uploader.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart';
+import 'package:using_flutter_uploader/config.dart';
 
 const String title = "FileUpload Sample app";
-const String uploadURL =
-    "https://us-central1-flutteruploader.cloudfunctions.net/upload";
-
+// これをsellca_apiにしたらいけそう。
+// const String uploadURL =
+//     "https://us-central1-flutteruploader.cloudfunctions.net/upload";
+// const uploadURL = 'https://test.sellca-sellcar.com/api/upload_car_photo/1';
+final uploadURL = '$envUrl/api/upload_car_photo/1';
 const String uploadBinaryURL =
     "https://us-central1-flutteruploader.cloudfunctions.net/upload/binary";
 
 void main() => runApp(App());
 
 class App extends StatefulWidget {
-  final Widget? child;
+  final Widget child;
 
-  App({Key? key,this.child}) : super(key: key);
+  App({Key key, this.child}) : super(key: key);
 
   _AppState createState() => _AppState();
 }
@@ -36,11 +39,11 @@ class _AppState extends State<App> {
 }
 
 class UploadItem {
-  final String? id;
-  final String? tag;
-  final MediaType? type;
-  final int? progress;
-  final UploadTaskStatus? status;
+  final String id;
+  final String tag;
+  final MediaType type;
+  final int progress;
+  final UploadTaskStatus status;
 
   UploadItem({
     this.id,
@@ -50,7 +53,7 @@ class UploadItem {
     this.status = UploadTaskStatus.undefined,
   });
 
-  UploadItem copyWith({required UploadTaskStatus status, required int progress}) => UploadItem(
+  UploadItem copyWith({UploadTaskStatus status, int progress}) => UploadItem(
       id: this.id,
       tag: this.tag,
       type: this.type,
@@ -66,7 +69,7 @@ class UploadItem {
 enum MediaType { Image, Video }
 
 class UploadScreen extends StatefulWidget {
-  UploadScreen({Key? key}) : super(key: key);
+  UploadScreen({Key key}) : super(key: key);
 
   @override
   _UploadScreenState createState() => _UploadScreenState();
@@ -74,8 +77,8 @@ class UploadScreen extends StatefulWidget {
 
 class _UploadScreenState extends State<UploadScreen> {
   FlutterUploader uploader = FlutterUploader();
-  StreamSubscription? _progressSubscription;
-  StreamSubscription? _resultSubscription;
+  StreamSubscription _progressSubscription;
+  StreamSubscription _resultSubscription;
   Map<String, UploadItem> _tasks = {};
 
   @override
@@ -99,7 +102,7 @@ class _UploadScreenState extends State<UploadScreen> {
       if (task == null) return;
 
       setState(() {
-        _tasks[result.tag] = task.copyWith(status: result.status,);
+        _tasks[result.tag] = task.copyWith(status: result.status);
       });
     }, onError: (ex, stacktrace) {
       print("exception: $ex");
@@ -123,6 +126,7 @@ class _UploadScreenState extends State<UploadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    var subhead;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Plugin example app'),
@@ -196,7 +200,7 @@ class _UploadScreenState extends State<UploadScreen> {
     );
   }
 
-  String _uploadUrl({required bool binary}) {
+  String _uploadUrl({bool binary}) {
     if (binary) {
       return uploadBinaryURL;
     } else {
@@ -205,7 +209,7 @@ class _UploadScreenState extends State<UploadScreen> {
   }
 
   Future getImage({@required bool binary}) async {
-    var image = await ImagePicker.pickImage(source: ImageSource.gallery);
+    var image = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (image != null) {
       final String filename = basename(image.path);
       final String savedDir = dirname(image.path);
@@ -227,7 +231,8 @@ class _UploadScreenState extends State<UploadScreen> {
             )
           : await uploader.enqueue(
               url: url,
-              data: {"name": "john"},
+              // data: {"name": "john"},
+              data: {"user_id": "john","token":"","car_id":"4"},
               files: [fileItem],
               method: UploadMethod.POST,
               tag: tag,
@@ -240,15 +245,16 @@ class _UploadScreenState extends State<UploadScreen> {
             () => UploadItem(
                   id: taskId,
                   tag: tag,
-                  type: MediaType.Video,
+                  // type: MediaType.Video,
+                  type: MediaType.Image,
                   status: UploadTaskStatus.enqueued,
                 ));
       });
     }
   }
 
-  Future getVideo({required bool binary}) async {
-    var video = await ImagePicker.pickVideo(source: ImageSource.gallery);
+  Future getVideo({@required bool binary}) async {
+    var video = await ImagePicker().pickVideo(source: ImageSource.gallery);
     if (video != null) {
       final String savedDir = dirname(video.path);
       final String filename = basename(video.path);
@@ -299,28 +305,28 @@ class _UploadScreenState extends State<UploadScreen> {
 typedef CancelUploadCallback = Future<void> Function(String id);
 
 class UploadItemView extends StatelessWidget {
-  final UploadItem? item;
-  final CancelUploadCallback? onCancel;
+  final UploadItem item;
+  final CancelUploadCallback onCancel;
 
   UploadItemView({
-    Key? key,
+    Key key,
     this.item,
     this.onCancel,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final progress = item!.progress!.toDouble() / 100;
-    final widget = item!.status == UploadTaskStatus.running
+    final progress = item.progress.toDouble() / 100;
+    final widget = item.status == UploadTaskStatus.running
         ? LinearProgressIndicator(value: progress)
         : Container();
-    final buttonWidget = item!.status == UploadTaskStatus.running
+    final buttonWidget = item.status == UploadTaskStatus.running
         ? Container(
             height: 50,
             width: 50,
             child: IconButton(
               icon: Icon(Icons.cancel),
-              onPressed: () => onCancel!(item!.id!),
+              onPressed: () => onCancel(item.id),
             ),
           )
         : Container();
@@ -330,11 +336,11 @@ class UploadItemView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Text(item!.tag!),
+              Text(item.tag),
               Container(
                 height: 5.0,
               ),
-              Text(item!.status!.description),
+              Text(item.status.description),
               Container(
                 height: 5.0,
               ),
