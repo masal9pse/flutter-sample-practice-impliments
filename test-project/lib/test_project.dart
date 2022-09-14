@@ -6,18 +6,18 @@ import 'package:test_project/model/api_response.dart';
 Future<void> execute() async {
   final response = await fetchPostResponse(
       url: 'http://challenge.z2o.cloud/challenges?nickname=miura');
-  final nowTime = convertUnixTimeMillisecondsToNowTime(
+  final nowActivesAtTime = convertUnixTimeMillisecondsToNowTime(
       unixTimeMilliseconds: response.activesAt);
-  // put処理
-  final putResponse = await hitPutApi(
+  final nowCalledAtTime = convertUnixTimeMillisecondsToNowTime(
+      unixTimeMilliseconds: response.calledAt);
+  hitPutApi(
       id: response.id,
-      date: nowTime,
+      activeAt: nowActivesAtTime,
+      calledAt: nowCalledAtTime,
       url: 'http://challenge.z2o.cloud/challenges');
 }
 
 Future<ApiPostResponse> fetchPostResponse({required String url}) async {
-  // final nickName = {'nickmame': 'miura'};
-  // final response = await http.post(Uri.parse(url), body: json.encode(nickName));
   final response = await http.post(Uri.parse(url));
   final decoded = json.decode(response.body) as Map<String, dynamic>;
   final convertedResponse = ApiPostResponse.fromJson(decoded);
@@ -28,27 +28,32 @@ Future<ApiPostResponse> fetchPostResponse({required String url}) async {
   return convertedResponse;
 }
 
-Future<String> hitPutApi(
-    {required String id, required DateTime date, required String url}) {
-  Timer(date.difference(date), () async {
-    print(date);
-    print('時間指定でデータを送ります。');
-    // final response =
-    //     await http.post(Uri.parse(url), headers: {'X-Challenge-Id': id});
+Future<void> hitPutApi(
+    {required String id,
+    required DateTime activeAt,
+    required,
+    required DateTime calledAt,
+    required String url}) {
+  final diff = activeAt.difference(calledAt);
+  Timer(diff, () async {
     final response =
         await http.put(Uri.parse(url), headers: {'X-Challenge-Id': id});
     print(response.body);
-    // final decoded = json.decode(response.body) as Map<String, dynamic>;
-    // final b = ApiPostResponse.fromJson(decoded);
-    // print(response.body);
-    // print(b.id);
+    final decoded = json.decode(response.body) as Map<String, dynamic>;
+    final convertedResponse = ApiPostResponse.fromJson(decoded);
+    hitPutApi(
+        id: convertedResponse.id,
+        activeAt: convertUnixTimeMillisecondsToNowTime(
+            unixTimeMilliseconds: convertedResponse.activesAt),
+        calledAt: convertUnixTimeMillisecondsToNowTime(
+            unixTimeMilliseconds: convertedResponse.calledAt),
+        url: url);
   });
-  // return '1';
-  return Future.value('1');
+
+  return Future.value();
 }
 
 DateTime convertUnixTimeMillisecondsToNowTime(
     {required String unixTimeMilliseconds}) {
-  int k = 3;
   return DateTime.fromMillisecondsSinceEpoch(int.parse(unixTimeMilliseconds));
 }
