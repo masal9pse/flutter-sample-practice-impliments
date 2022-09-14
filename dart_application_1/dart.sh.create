@@ -1,0 +1,1 @@
+{"name":"web-simple","label":"Bare-bones Web App","description":"A web app that uses only core Dart libraries.","categories":["dart","web"],"entrypoint":"web/main.dart"}

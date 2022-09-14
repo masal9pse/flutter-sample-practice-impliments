@@ -1,6 +1,6 @@
 import UIKit
 import Flutter
-import flutter_uploader
+// import flutter_uploader
 
 func registerPlugins(registry: FlutterPluginRegistry) {
     GeneratedPluginRegistrant.register(with: registry)
@@ -13,7 +13,7 @@ func registerPlugins(registry: FlutterPluginRegistry) {
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
-    SwiftFlutterUploaderPlugin.registerPlugins = registerPlugins
+    // SwiftFlutterUploaderPlugin.registerPlugins = registerPlugins
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }
