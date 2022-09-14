@@ -11,7 +11,9 @@ void main() {
 
   group('convertUnixTimeMillisecondsToNowTimeはUNIXタイムミリ秒を現在時刻に変換する。', () {
     test('1663145612534は2022-09-14:53:32:534秒である。', () async {
-      expect(convertUnixTimeMillisecondsToNowTime('1663145612534'),
+      expect(
+          convertUnixTimeMillisecondsToNowTime(
+              unixTimeMilliseconds: '1663145612534'),
           DateTime(2022, 09, 14, 17, 53, 32, 534));
     });
   });
